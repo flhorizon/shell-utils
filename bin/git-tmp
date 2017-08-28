@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Assuming same push & fetch URL for origin
+# Originally written for slow git-push commands
+
+cur_repo_root=$(git rev-parse --show-toplevel)
+dest_repo="/tmp/${cur_repo_root##*/}"
+origin_remote=$(git remote get-url origin)
+
+log_file() {
+	local child_pid=$1
+	echo /tmp/$child_pid-remote_op.log
+}
+
+test -e $dest_repo && rm -rfv $dest_repo
+test -z "$cur_repo_root" \
+	&& echo "Cannot find current repo root !" >&2 \
+	&& exit 1
+(
+	set -e
+	trap "" HUP INT
+	cd /tmp
+	log=$(log_file $$)
+	exec 1<>$log 2>&1 0<&-
+	git clone --no-hardlinks --bare -- "file://$cur_repo_root" "$dest_repo"
+	cd $dest_repo
+	git remote set-url origin "$origin_remote"
+	echo "ORIGIN: " $(git remote get-url origin)
+	gitcmd=$1
+	shift
+	test "$gitcmd" == push && atomic_opt="--atomic"
+	echo "COMMAND: " git $gitcmd $atomic_opt $@
+	git $gitcmd $atomic_opt $@
+	exit $(( ! $? == 0 ))
+) &
+child=$!
+printf "Daemonizing command: \`\`%s''... (logging to %s)\n" "git $*" "$(log_file $child)"
+disown
