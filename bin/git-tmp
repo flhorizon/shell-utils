@@ -1,7 +1,13 @@
 #!/bin/bash
 
+# Originally written with slow git-push commands in mind!
+# Otherwise largely untested.
+# Commands requiring a tty will misbehave.
+
+# Usage: $0 <...git cmd...>
+# e.g.: git-tmp push origin feature-branch
+
 # Assuming same push & fetch URL for origin
-# Originally written for slow git-push commands
 
 cur_repo_root=$(git rev-parse --show-toplevel)
 dest_repo="/tmp/${cur_repo_root##*/}"
@@ -21,7 +27,7 @@ test -z "$cur_repo_root" \
 	trap "" HUP INT
 	cd /tmp
 	log=$(log_file $$)
-	exec 1<>$log 2>&1 0<&-
+	exec 1<>$log 2>&1
 	git clone --no-hardlinks --bare -- "file://$cur_repo_root" "$dest_repo"
 	cd $dest_repo
 	git remote set-url origin "$origin_remote"
