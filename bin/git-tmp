@@ -15,7 +15,7 @@ origin_remote=$(git remote get-url origin)
 
 log_file() {
 	local child_pid=$1
-	echo /tmp/$child_pid-remote_op.log
+	echo /tmp/${child_pid}_git-tmp.log
 }
 
 test -e $dest_repo && rm -rfv $dest_repo
