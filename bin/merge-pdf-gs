@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Reset in case getopts has been used previously in the shell.
+OPTIND=1
+
+output_file=""
+
+prog_name=$(basename $0)
+
+usage() {
+    printf "Usage: %s [-h] <-o output.pdf> [--] <first.pdf> [nth.pdf ...]\n" "$prog_name"
+}
+
+help() {
+    printf "Concatenates PDFs into the -o output.pdf.\n"
+}
+
+invalid() {
+    local opt=$1
+    printf "%s: Invalid option: -%s\n" "$prog_name" "$opt"
+}
+
+while getopts ":ho:" opt; do
+    # NOTES:
+    # "^[:]" (as first:) silently pass unknown positional opt to '?' case.
+    # "o[:]" set OPTARG to next param for 'o' case.
+    case "$opt" in
+    h)
+        usage
+        help
+        exit 0
+        ;;
+    o)  output_file="$OPTARG"
+        ;;
+    \?)
+        exec >&2
+        invalid "$OPTARG"
+        usage
+        exit 1
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+(( $# == 0 )) \
+    && exec >&2 \
+    && usage \
+    && exit 1
+
+gs -q -sPAPERSIZE=letter -dNOPAUSE -dBATCH -sDEVICE=pdfwrite \
+    -sOutputFile="$output_file" \
+    "$@"
+    
